@@ -41,23 +41,31 @@ describe("SystemOfEquations verifier test", function () {
     });
 
     it("Should return true for correct proof", async function () {
-        //[assignment] Add comments to explain what each line is doing
-        const { proof, publicSignals } = await groth16.fullProve({
-            "x": ["15","17","19"],
-            "A": [["1","1","1"],["1","2","3"],["2","-1","1"]],
-            "b": ["51", "106", "32"]
-        },
-            "contracts/bonus/SystemOfEquations/SystemOfEquations_js/SystemOfEquations.wasm","contracts/bonus/SystemOfEquations/circuit_final.zkey");
-
+        // Create a groth16 based proof along with public outputs 
+        const { proof, publicSignals } = await groth16.fullProve(
+            {
+                "x": ["15","17","19"],
+                "A": [["1","1","1"],["1","2","3"],["2","-1","1"]],
+                "b": ["51", "106", "32"]
+            },
+            "contracts/bonus/SystemOfEquations/SystemOfEquations_js/SystemOfEquations.wasm",
+            "contracts/bonus/SystemOfEquations/circuit_final.zkey"
+        );
+        
+        // Create a calldata package for the verifier
         const calldata = await groth16.exportSolidityCallData(proof, publicSignals);
-    
+            
+        // Parse the calldata into an array of integers
         const argv = calldata.replace(/["[\]\s]/g, "").split(',').map(x => BigInt(x).toString());
-    
+        
+        // Reconstruct the proof in a format that the verifier can understand
         const a = [argv[0], argv[1]];
         const b = [[argv[2], argv[3]], [argv[4], argv[5]]];
         const c = [argv[6], argv[7]];
+        // Remaining arguments are the public inputs
         const Input = argv.slice(8);
 
+        // Verify the proof
         expect(await verifier.verifyProof(a, b, c, Input)).to.be.true;
     });
     it("Should return false for invalid proof", async function () {
